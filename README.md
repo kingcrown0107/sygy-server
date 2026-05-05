@@ -14,7 +14,15 @@ GOOS=linux GOARCH=amd64 go build -o sygy-server .
 ## Run
 
 ```bash
-PORT=8080 ./sygy-server
+HOST=0.0.0.0 PORT=8080 ./sygy-server
+```
+
+Native SYGY clients connect without a browser `Origin` header and are accepted by default.
+Browser-originated WebSocket connections are rejected unless the exact origin is listed in
+`ALLOWED_ORIGINS`.
+
+```bash
+ALLOWED_ORIGINS=https://sygy.example.com HOST=0.0.0.0 PORT=8080 ./sygy-server
 ```
 
 ## Protocol
@@ -26,8 +34,8 @@ All messages are JSON over WebSocket at `ws://<host>:<port>/ws`.
 | type | fields | description |
 |------|--------|-------------|
 | `join` | `room`, `index`, `participants` | Join a room (index is 1-based) |
-| `signal_done` | `room`, `index`, `participants` | Mark self as done |
-| `post_raid_id` | `room`, `index`, `participants`, `battle_id` | Share battle ID |
+| `signal_done` | `room`, `index`, `participants` | Mark self as done. `index` and `participants` may be omitted after `join`. |
+| `post_raid_id` | `room`, `index`, `participants`, `battle_id` or `raid_id` | Share battle ID. `index` and `participants` may be omitted after `join`. |
 | `reset_lamps` | `room` | Reset all lamps |
 
 ### Server → Client
@@ -52,7 +60,11 @@ All messages are JSON over WebSocket at `ws://<host>:<port>/ws`.
 
 ## Deploy (ConoHa VPS)
 
+See [docs/vps-deployment.md](docs/vps-deployment.md) for the current hardened VPS layout.
+
 ```bash
-scp sygy-server user@<vps-ip>:/usr/local/bin/
-ssh user@<vps-ip> 'systemctl enable --now sygy-server'
+go test ./...
+go build -trimpath -ldflags='-s -w' -o sygy-server .
+install -o root -g root -m 0755 sygy-server /opt/sygy-server/sygy-server
+systemctl restart sygy-server.service
 ```

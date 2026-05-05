@@ -14,6 +14,7 @@ type clientMsg struct {
 	Index        int    `json:"index"`
 	Participants int    `json:"participants"`
 	BattleID     string `json:"battle_id"`
+	RaidID       string `json:"raid_id"`
 }
 
 type serverMsg struct {
@@ -113,7 +114,15 @@ func (h *Hub) handle(c *client, msg clientMsg) {
 
 	case "signal_done":
 		r := h.getOrCreateRoom(msg.Room, msg.Participants)
-		allDone := r.state.SignalDone(msg.Index-1, msg.Participants)
+		index := msg.Index
+		if index == 0 {
+			index = c.index
+		}
+		participants := msg.Participants
+		if participants == 0 {
+			participants = r.state.ParticipantCount
+		}
+		allDone := r.state.SignalDone(index-1, participants)
 		h.broadcast(r, "room_state")
 		if allDone {
 			h.broadcastAllDone(r)
@@ -121,7 +130,19 @@ func (h *Hub) handle(c *client, msg clientMsg) {
 
 	case "post_raid_id":
 		r := h.getOrCreateRoom(msg.Room, msg.Participants)
-		r.state.PostRaidID(msg.Index-1, msg.Participants, msg.BattleID)
+		index := msg.Index
+		if index == 0 {
+			index = c.index
+		}
+		participants := msg.Participants
+		if participants == 0 {
+			participants = r.state.ParticipantCount
+		}
+		battleID := msg.BattleID
+		if battleID == "" {
+			battleID = msg.RaidID
+		}
+		r.state.PostRaidID(index-1, participants, battleID)
 		h.broadcast(r, "room_state")
 
 	case "reset_lamps":
