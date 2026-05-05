@@ -10,15 +10,37 @@ This document records the production VPS layout used for SYGY.
 - Health endpoint: `http://160.251.173.17:8080/health`
 - SSH port: `1415`
 - Service name: `sygy-server.service`
+- Source repository: `/srv/orglab/workspace/sygy-server`
 - Binary path: `/opt/sygy-server/sygy-server`
 - Working directory: `/opt/sygy-server`
 - Runtime user: `sygy-server`
 
+## Layout
+
+Keep source and runtime separate:
+
+```text
+/srv/orglab/workspace/sygy-server   # source, tests, build/deploy work
+/opt/sygy-server/sygy-server        # runtime binary used by systemd
+/etc/systemd/system/sygy-server.service
+```
+
+`/opt/sygy-server` should be treated as runtime layout. Do not do normal development
+work there.
+
 ## Build
 
 ```bash
+cd /srv/orglab/workspace/sygy-server
 go test ./...
 go build -trimpath -ldflags='-s -w' -o sygy-server .
+```
+
+Install requires root privileges:
+
+```bash
+install -o root -g root -m 0755 sygy-server /opt/sygy-server/sygy-server
+systemctl restart sygy-server.service
 ```
 
 ## systemd
